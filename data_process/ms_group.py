@@ -1,4 +1,6 @@
 from data_process.data_mapping import DataMapping
+from query_data_module import ConnectToMongo
+from pymongo import UpdateOne
 import pandas as pd
 import logging
 import math
@@ -6,32 +8,24 @@ import copy
 import sys
 
 
-class MSGroup(DataMapping):
+class MSGroup(DataMapping, ConnectToMongo):
     def __init__(self, wip_df: pd.DataFrame):
         super().__init__()
         self.wip_df = wip_df.sort_values(by=['MOVE_IN_TIME'], ascending=True)
         self.move_in_time = self.wip_df.get('MOVE_IN_TIME')[0]
         self.move_out_time = self.wip_df.get('MOVE_OUT_TIME')[0]
+        self.time_col = 'TIME'
+        self.tbname = 'ms_original_lot'
+        self.update_list = []
 
     def main_function(self):
-        df_size = self.get_data('ms_original_lot')
+        df_size = self.get_data()
         if df_size > 0:
-            self.source_df['TIME'] = self.source_df['TIME'].dt.tz_localize("UTC")
+            self.source_df[self.time_col] = self.source_df[self.time_col].dt.tz_localize("UTC")
             self.lot_mapping()
             self.step_mapping()
             self.prod_mapping()
             self.transfer_compression_data()
-
-    def step_mapping(self):
-        # lot + eqp + time --> step
-        mask = (self.source_df['EQP_ID'].notnull()) & (self.source_df['LOT_ID'].notnull())
-        target_df = self.source_df[mask]
-        wip_df = self.wip_df[['FAB_ID', 'EQP_ID', 'LOT_ID', 'STEP', 'MOVE_IN_TIME', 'MOVE_OUT_TIME']]
-        target_df = pd.merge(target_df, wip_df, on=['FAB_ID', 'EQP_ID', 'LOT_ID'])
-
-        mask = (target_df['TIME'] >= target_df['MOVE_IN_TIME']) & (target_df['TIME'] <= target_df['MOVE_OUT_TIME'])
-        target_df = target_df[mask].drop(['MOVE_IN_TIME', 'MOVE_OUT_TIME'], axis=1)
-        self.source_df = target_df
 
     def slice_parameters_value(self, d, start, end):
         sliced = {}
@@ -43,7 +37,6 @@ class MSGroup(DataMapping):
         return sliced
 
     def collect_signal(self, group):
-        colle = self.db["ms_lot"]
         DOC_MAX_SIZE = 15728640  # 15MB
         non_signal_columns = [('FAB_ID', ''), ('EQP_ID', ''), ('STEP', ''), ('LOT_ID', ''), ('TIME', ''), ('PROD_ID', ''), ('LOT_TYPE', '')]
         group = group.sort_values(by="TIME").reset_index(drop=True)
@@ -80,17 +73,9 @@ class MSGroup(DataMapping):
                     sliced_d["TIME"] = d["TIME"][idx:]
                     sliced_d["VALUE"] = self.slice_parameters_value(d["VALUE"], idx, -1)
 
-                try:
-                    colle.insert_one(d, bypass_document_validation=True)
-                except Exception as e:
-                    log_text = f"MS Transform Fail !! Error Log: {e}"
-                    logging.info(log_text)
+                self.group_document(d)
         else:
-            try:
-                colle.insert_one(d, bypass_document_validation=True)
-            except Exception as e:
-                log_text = f"MS Transform Fail !! Error Log: {e}"
-                logging.info(log_text)
+            self.group_document(d)
 
     def transfer_compression_data(self):
         ms_original_df = self.source_df
@@ -103,5 +88,16 @@ class MSGroup(DataMapping):
                                       values=["VALUE"]).reset_index()
 
                 self.collect_signal(temp)
+            self.bulk_write(self.tbname, 'ms_lot', self.update_list)
         else:
             logging.warning("No ms_original_lot !!")
+
+    def group_document(self, d: dict) -> None:
+        query = {'FAB_ID': d.get('FAB_ID'),
+                 'EQP_ID': d.get('EQP_ID'),
+                 'LOT_ID': d.get('LOT_ID'),
+                 'STEP': d.get('STEP'),
+                 'PROD_ID': d.get('PROD_ID'),
+                 'LOT_TYPE': d.get('LOT_TYPE')}
+        set = {"$set": {"TIME": d.get('TIME'), "VALUE": d.get('VALUE')}}
+        self.update_list.append(UpdateOne(query, set, upsert=True))

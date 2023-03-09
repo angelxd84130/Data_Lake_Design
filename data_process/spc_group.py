@@ -1,19 +1,24 @@
 from data_process.data_mapping import DataMapping
+from query_data_module import ConnectToMongo
+from pymongo import UpdateOne
 import pandas as pd
 import logging
 
 
-class SPCGroup(DataMapping):
+class SPCGroup(DataMapping, ConnectToMongo):
     def __init__(self, wip_df: pd.DataFrame):
         super().__init__()
         self.wip_df = wip_df.sort_values(by=['MOVE_IN_TIME'], ascending=True)
         self.move_in_time = self.wip_df.get('MOVE_IN_TIME')[0]
         self.move_out_time = self.wip_df.get('MOVE_OUT_TIME')[0]
+        self.time_col = 'TIME'
+        self.tbname = 'spc_original_lot'
+        self.update_list = []
 
     def main_function(self) -> None:
-        df_size = self.get_data('spc_original_lot')
+        df_size = self.get_data()
         if df_size > 0:
-            self.source_df['TIME'] = self.source_df['TIME'].dt.tz_localize("UTC")
+            self.source_df[self.time_col] = self.source_df[self.time_col].dt.tz_localize("UTC")
             self.step_eqp_mapping()
             self.source_df = self.source_df.drop(['PROD_ID', 'LOT_TYPE'], axis=1)
             self.prod_mapping()
@@ -29,9 +34,11 @@ class SPCGroup(DataMapping):
         wip_df = self.wip_df[['FAB_ID', 'EQP_ID', 'LOT_ID', 'STEP', 'MOVE_IN_TIME', 'MOVE_OUT_TIME']]
         target_df = pd.merge(target_df, wip_df, on=['FAB_ID', 'LOT_ID'])
 
-        mask = (target_df['TIME'] >= target_df['MOVE_IN_TIME']) & (target_df['TIME'] <= target_df['MOVE_OUT_TIME'])
+        mask = (target_df[self.time_col] >= target_df['MOVE_IN_TIME']) & (target_df[self.time_col] <= target_df['MOVE_OUT_TIME'])
         target_df = target_df[mask].drop(['MOVE_IN_TIME', 'MOVE_OUT_TIME'], axis=1)
         self.source_df = target_df
+        log_text = f"finished step & eqp mapping"
+        logging.info(log_text)
 
     def transfer_compression_data(self) -> None:
         self.source_df = self.source_df.dropna(subset=['LOT_ID', 'STEP', 'EQP_ID'])
@@ -40,30 +47,32 @@ class SPCGroup(DataMapping):
             logging.info(log_text)
             return
 
-        target_colle = self.db["spc_lot"]
-        checkList = self.source_df.drop_duplicates(
-            subset=['FAB_ID', 'STATION', 'DEPARTMENT', 'FILE_ID', 'CTRL_ID', 'TIME'])
-        for index, row in checkList.iterrows():
-            (value, std, step, eqp, prod, lot, parameter, num) = self._get_value(row)
-            target_colle.update_one(
-                {"FAB_ID": row["FAB_ID"], "PROD_ID": prod, "STEP": step,
-                 "EQP_ID": eqp, "LOT_ID": lot, "PARAMETER_ID": parameter,
-                 "STATION": row["STATION"], "PROPERTY": row["PROPERTY"], "DEPARTMENT": row["DEPARTMENT"],
-                 "FILE_NAME": row["FILE_NAME"], "FILE_ID": row["FILE_ID"], "CTRL_ID": row["CTRL_ID"],
-                 "TIME": row['TIME'], "LOT_TYPE": "standard"},
-                {"$set": {"VALUE": value, "STD": std, "VALUES": num}}, upsert=True
-            )
-        log_text = f"[UPDATE STEP]: the total of rows is {checkList.shape[0]}"
+        checkList = self.source_df.groupby(['FAB_ID', 'STATION', 'DEPARTMENT', 'FILE_ID', 'CTRL_ID', 'TIME'])
+        for key, item in checkList:
+            self.group_document(item)
+        print(self.update_list)
+        self.bulk_write(self.tbname, 'spc_lot', self.update_list)
+        log_text = f"[UPDATE STEP]: the total of rows is {len(checkList)}"
         logging.info(log_text)
 
-    def _get_value(self, row_data: pd.DataFrame) -> (float, float):
-        df = row_data
-        mean = round(df['VALUE'].mean(), 6)
-        std = round(df['VALUE'].std(), 6)
-        step = df[['STEP']].sort_values(by=['STEP']).loc[0, 'STEP']
-        eqp = df[['EQP_ID']].sort_values(by='EQP_ID').loc[0, 'EQP_ID']
-        prod = df[['PROD_ID']].sort_values(by='PROD_ID').loc[0, 'PROD_ID']
-        lot = df[['LOT_ID']].sort_values(by='LOT_ID').loc[0, 'LOT_ID']
-        parameter = df[['PARAMETER_ID']].sort_values(by='PARAMETER_ID').loc[0, 'PARAMETER_ID']
-        num = round(df[['VALUE']], 6).values.flatten().tolist()
-        return (mean, std, step, eqp, prod, lot, parameter, num)
+    def _get_value(self, row: pd.DataFrame, col: str) -> str:
+        return row[col].sort_values().head(1).values[0]
+    def group_document(self, row: pd.DataFrame) -> None:
+        query = {"FAB_ID": self._get_value(row, 'FAB_ID'),
+                 "PROD_ID": self._get_value(row, 'PROD_ID'),
+                 "STEP": self._get_value(row, 'STEP'),
+                 "EQP_ID": self._get_value(row, 'EQP_ID'),
+                 "LOT_ID": self._get_value(row, 'LOT_ID'),
+                 "PARAMETER_ID": self._get_value(row, 'PARAMETER_ID'),
+                 "STATION": self._get_value(row, 'STATION'),
+                 "PROPERTY": self._get_value(row, 'PROPERTY'),
+                 "DEPARTMENT": self._get_value(row, 'DEPARTMENT'),
+                 "FILE_NAME": self._get_value(row, 'FILE_NAME'),
+                 "FILE_ID": int(self._get_value(row, 'FILE_ID')),  # monog doesn't accept numpy types
+                 "CTRL_ID": int(self._get_value(row, 'CTRL_ID')),
+                 "TIME": pd.to_datetime(self._get_value(row, 'TIME')),
+                 "LOT_TYPE": "standard"}
+        set = {"$set": {"VALUE": round(float(row['VALUE'].mean()), 6),
+                        "STD": round(float(row['VALUE'].std()), 6),
+                        "VALUES": round(row[['VALUE']], 6).values.flatten().tolist()}}
+        self.update_list.append(UpdateOne(query, set, upsert=True))

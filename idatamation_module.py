@@ -14,6 +14,7 @@ class IdatamationFlow:
         self.os_path = "/home/mia/PycharmProjects/ETL_TEST/s3/"
         self.raw_data_path = self.os_path + f"/{data_source}/"
         self.today_date = datetime.now().strftime("%Y%m%d")
+        self.backup_path = self.os_path + f"/{data_source}/"
 
     def get_data_from_nas(self):
         filename_list = os.listdir(self.raw_data_path)
@@ -67,13 +68,19 @@ class IdatamationFlow:
             else:
                 log_text = ''
                 try:
-                    df = pd.read_csv(self.raw_data_path + filename, encoding="big5", dtype=type_dict)
+                    df = pd.read_csv(self.raw_data_path + filename, encoding="big5", dtype=type_dict, encoding_errors='ignore')
                     df = df.rename(columns=lambda x: x.strip().upper())
                     log_text = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {self.data_source}/{filename} " + \
                                f"The number of data row is {df.shape[0]}!\n"
                     column_format_pass = True
                 except ValueError as e:
-
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    error_info = {
+                        'type': str(exc_type.__name__),
+                        'msg': str(exc_value),
+                        'info': repr(traceback.format_tb(exc_traceback)),
+                    }
+                    print(error_info)
                     log_text = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {self.data_source}/{filename} " + \
                                "column type is not correct!\n \n"
                     column_format_pass = False
@@ -91,7 +98,14 @@ class IdatamationFlow:
 
                     except ValueError as e:
                         date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        os.system(f"cp {self.backup_path + filename} {self.error_path + 'other/'}")
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        error_info = {
+                            'type': str(exc_type.__name__),
+                            'msg': str(exc_value),
+                            'info': repr(traceback.format_tb(exc_traceback)),
+                        }
+                        print(error_info)
+                        #os.system(f"cp {self.backup_path + filename} {self.error_path + 'other/'}")
                         log_text = f"[{date_time}][Value Error]: Column type is not correct !\n" + \
                                    f"[Error]:{e}"
                         mongo_conf.mongo_insert_log(date_time, self.fab_folder, self.data_source, filename,
