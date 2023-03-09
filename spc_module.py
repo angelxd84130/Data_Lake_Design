@@ -38,7 +38,7 @@ class SPCIdatamation(IdatamationFlow):
         df["TIME"] = pd.to_datetime(df["TIME"])
         df = self.get_prodID_and_lotTYPE(df, 7, "standard")  # spc data has special rules
         df = self.data_type_check(df, data_type)
-        self.log_csv_save_result(df, "spc_original_lot", filename)
+        self.mongo_insert_data(df, "spc_original_lot", filename, set(), set(), duplicated_data=True)
         return df.shape[0]
 
 

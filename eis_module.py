@@ -18,7 +18,6 @@ class EISIdatamation(IdatamationFlow):
         self.filename = None
 
     def data_transformat(self, df, filename, replace_column_list, use_column_list):
-        # TODO: Changing the time zone is not required.
         df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"])
         df["TIMESTAMP"] = df["TIMESTAMP"].dt.tz_localize("Etc/GMT-8").dt.tz_convert("UTC")
         df = df.rename(columns=replace_column_list)
@@ -27,7 +26,7 @@ class EISIdatamation(IdatamationFlow):
         # final check column type is correct
         df["TIME"] = pd.to_datetime(df["TIME"])
         df = self.data_type_check(df, data_type)
-        self.log_csv_save_result(df, "ms_original_lot", filename)
+        self.mongo_insert_data(df, "ms_original_lot", filename, set(), set(), duplicated_data=True)
         return df.shape[0]
 
 

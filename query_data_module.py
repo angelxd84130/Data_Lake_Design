@@ -1,8 +1,7 @@
+import pandas as pd
 import logging
 from datetime import datetime
 from pymongo import MongoClient
-import traceback
-import sys
 
 class ConnectToMongo:
     def __init__(self):
@@ -19,14 +18,13 @@ class ConnectToMongo:
     def mongo_insert_log(self, date_time, fab_folder, data_source, filename, status, message=None, datarows=None,
                          insert_db_rows=None, is_success=None):
         collection_name = "idatamation_log"
-        info_log_path = self.os_path + f"datasource/log/{fab_folder}/{data_source}/"
         log_dict = {"datetime": datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S"),
                     "fab": fab_folder, "datasource": data_source, "filename": filename,
                     "status": status, "message": message, "datarows": datarows, "isSuccess": is_success,
                     "dbrows": insert_db_rows}
         self.db[collection_name].insert_one(log_dict)
 
-    def mongo_import(self, df, collection_name, fab_folder, data_source, filename):
+    def mongo_import(self, df: pd.DataFrame, collection_name: str, fab_folder: str, data_source: str, filename: str):
         df_json = df.to_dict("records")
         log_text = None
         date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -45,44 +43,25 @@ class ConnectToMongo:
         finally:
             return log_text
 
-    def mongo_update(self, query, new_values, collection_name, data_source, filename):
+    def mongo_remove(self, collection_name, query):
+        log_text = None
+        date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         try:
-            if len(list(self.db[collection_name].find(query))) > 1:
-                logging.warning(f"The conditions you query are not unique value !")
-
-            self.db[collection_name].update_one(query, new_values)
-            logging.info(f"{data_source}/{filename}, Update data Successful !!!")
-            logging.info(f"Update data is {query}.")
+            mongo_remove_result = self.db[collection_name].delete_many(query)
+            db_rows = mongo_remove_result.deleted_count
+            log_text = f"[{date_time}] {collection_name} " + \
+                       f"A total of {db_rows} delete to MongoDB !!!\n"
         except Exception as e:
-            logging.info(f"{data_source}/{filename}, Update data is failed ! The following is except error: ")
-            logging.info(f"Failed data is {query}.")
-            logging.info(e)
-
-    def mongo_upsert(self, query, new_values, collection_name, data_source, filename):
-        try:
-            if len(list(self.db[collection_name].find(query))) > 1:
-                logging.warning(f"The conditions you query are not unique value !")
-
-            self.db[collection_name].update_many(query, new_values, upsert=True)
-            logging.info(f"{data_source}/{filename}, Update data Successful !!!")
-            logging.info(f"Update data is {query}.")
-        except Exception as e:
-            logging.info(f"{data_source}/{filename}, Update data is failed ! The following is except error: ")
-            logging.info(f"Failed data is {query}.")
-            logging.info(e)
+            log_text = f"[{date_time}] {collection_name} " + \
+                       "Delete to MongoDB is failed ! The following is except error: " + f"{e}\n"
+        finally:
+            return log_text
 
     def bulk_write(self, data_source: str, target_collection: str, updates: list) -> None:
         try:
             self.db[target_collection].bulk_write(updates, ordered=False)
-            print('success')
             logging.info(f"{data_source}->{target_collection}, Update data Successful !!!")
         except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            error_info = {
-                'type': str(exc_type.__name__),
-                'msg': str(exc_value),
-                'info': repr(traceback.format_tb(exc_traceback)),
-            }
-            print(error_info)
             logging.info(f"{data_source}->{target_collection}, Update data is failed ! The following is except error: ")
             logging.info(e)
+

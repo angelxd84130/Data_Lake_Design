@@ -33,7 +33,8 @@ class EventIdatamation(IdatamationFlow):
         # final check column type is correct
         df["START_TIME"] = pd.to_datetime(df["START_TIME"])
         df = self.data_type_check(df, data_type)
-        self.log_csv_save_result(df, "events_original", filename)
+        df = self.data_type_check(df, data_type)
+        self.mongo_insert_data(df, "events_original", filename, set(), set(), duplicated_data=True)
         return df.shape[0]
 
 

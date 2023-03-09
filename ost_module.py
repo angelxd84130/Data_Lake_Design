@@ -1,7 +1,6 @@
 import pandas as pd
 from idatamation_module import IdatamationFlow
 
-
 fab_folder = "S3"
 data_source = "OST"
 type_dict = {"廠別": str, "料號": str, "批號": str, "Layer": str, "站別": str, "EDID": str, "Parameter": str}
@@ -31,7 +30,9 @@ class OSTIdatamation(IdatamationFlow):
         df["TIME"] = pd.to_datetime(df["TIME"])
         df = self.get_prodID_and_lotTYPE(df)
         df = self.data_type_check(df, data_type)
-        self.log_csv_save_result(df, "ost_lot", filename)
+        key_col = {'FAB_ID', 'STEP', 'PROD_ID', 'LOT_ID', 'PARAMETER_ID', 'TIME'}
+        update_col = {'VALUE'}
+        self.mongo_insert_data(df, "ost_lot", filename, key_col, update_col)
         return df.shape[0]
 
 

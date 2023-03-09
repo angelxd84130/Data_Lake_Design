@@ -1,14 +1,16 @@
 import pandas as pd
 import os
 from datetime import datetime, timedelta
+from pymongo import UpdateOne
 import numpy as np
-import query_data_module
+from query_data_module import ConnectToMongo
 import traceback
 import sys
 
 
-class IdatamationFlow:
+class IdatamationFlow(ConnectToMongo):
     def __init__(self, fab_folder, data_source):
+        super().__init__()
         self.fab_folder = fab_folder
         self.data_source = data_source
         self.os_path = "/home/mia/PycharmProjects/ETL_TEST/s3/"
@@ -26,12 +28,12 @@ class IdatamationFlow:
     def data_transformat(self, df, filename, replace_column_list, use_column_list):
         pass
 
-    def data_type_check(self, df, data_type: dict):
+    def data_type_check(self, df: pd.DataFrame, data_type: dict) -> pd.DataFrame:
         for col in data_type:
             df[col] = df[col].astype(data_type[col]).where(df[col].notnull(), None)
         return df
 
-    def get_prodID_and_lotTYPE (self, df, limit_size=8, lot_type=None):
+    def get_prodID_and_lotTYPE (self, df: pd.DataFrame, limit_size=8, lot_type=None) -> pd.DataFrame:
         """
         function for unimicron special needs
         the front 7 characters mean PROD unique ID.
@@ -45,14 +47,34 @@ class IdatamationFlow:
             df['LOT_TYPE'] = lot_type
         return df
 
-    def log_csv_save_result(self, df, collection_name, filename):
-        mongo_conf = query_data_module.ConnectToMongo()
-        log_text = mongo_conf.mongo_import(df, collection_name, self.fab_folder, self.data_source, filename)
-        print(log_text)
+    def _drop_by_time(self, df: pd.DataFrame, collection_name: str) -> None:
+        time_col = {"ms_original_lot": "TIME", "events_original": "START_TIME"}
+        df_time = df[time_col[collection_name]].sort_values()
+        duplicated_start_time = pd.to_datetime(df_time.head(1).values[0])
+        duplicated_end_time = pd.to_datetime(df_time.tail(1).values[0])
+        query = {time_col[collection_name]: {"$gte": duplicated_start_time,
+                                             "$lte": duplicated_end_time}}
+        self.mongo_remove(collection_name, query)
 
+    def _package_data(self, df: pd.DataFrame, key_col: set, update_col: set) -> list:
+        update_list = []
+        for index, row in df.iterrows():
+            query = {key: row.get(key) for key in key_col}
+            set = {"$set": {key: row.get(key) for key in update_col}}
+            update_list.append(UpdateOne(query, set, upsert=True))
+        return update_list
+
+    def mongo_insert_data(self, df: pd.DataFrame, collection_name: str, filename: str,
+                          key_col: set, update_col: set, duplicated_data=False) -> None:
+        if duplicated_data:
+            self._drop_by_time(df, collection_name)
+            self.mongo_import(df, collection_name, self.fab_folder, self.data_source, filename)
+        else:
+            update_list = self._package_data(df, key_col, update_col)
+            self.bulk_write(self.fab_folder+filename, collection_name, update_list)
 
     def main_function(self, column_format_list, replace_column_list, use_column_list, type_dict):
-        mongo_conf = query_data_module.ConnectToMongo()
+        mongo_conf = ConnectToMongo()
         filename_list = self.get_data_from_nas()
         df_count = 0
         for filename in filename_list:
@@ -105,7 +127,6 @@ class IdatamationFlow:
                             'info': repr(traceback.format_tb(exc_traceback)),
                         }
                         print(error_info)
-                        #os.system(f"cp {self.backup_path + filename} {self.error_path + 'other/'}")
                         log_text = f"[{date_time}][Value Error]: Column type is not correct !\n" + \
                                    f"[Error]:{e}"
                         mongo_conf.mongo_insert_log(date_time, self.fab_folder, self.data_source, filename,
@@ -134,8 +155,3 @@ class IdatamationFlow:
                                                     datarows=df.shape[0],
                                                     is_success=False)
                         print(log_text)
-
-
-
-
-
