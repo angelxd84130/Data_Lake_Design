@@ -31,7 +31,9 @@ class SPCPlanv5Idatamation(IdatamationFlow):
         # final check column type is correct
         df = self.get_prodID_and_lotTYPE(df, 7, "standard")  # spc data has special rules
         df = self.data_type_check(df, data_type)
-        self.log_csv_save_result(df, "spc_plan_v5", filename)
+        key_col = {"FAB_ID", "PROD_ID_RAW", "STEP", "PARAMETER_ID", "FILE_NAME"}
+        update_col = {"usl_val", "lsl_val", "ucl_val", "lcl_val"}
+        self.mongo_insert_data(df, "spc_plan_v5", filename, key_col, update_col)
         return df.shape[0]
 
 

@@ -20,8 +20,8 @@ class IdatamationFlow(ConnectToMongo):
 
     def get_data_from_nas(self):
         filename_list = os.listdir(self.raw_data_path)
-        filename_list = sorted(filename_list, reverse=True)
-        filename_list = filename_list[0:10]  # To do last 3 files of once
+        filename_list = sorted(filename_list, reverse=False)
+        filename_list = filename_list[0:100]  # To do last 3 files of once
         return filename_list
 
 
@@ -48,7 +48,9 @@ class IdatamationFlow(ConnectToMongo):
         return df
 
     def _drop_by_time(self, df: pd.DataFrame, collection_name: str) -> None:
-        time_col = {"ms_original_lot": "TIME", "events_original": "START_TIME"}
+        time_col = {"ms_original_lot": "TIME",
+                    "events_original": "START_TIME",
+                    "spc_original_lot": "TIME"}
         df_time = df[time_col[collection_name]].sort_values()
         duplicated_start_time = pd.to_datetime(df_time.head(1).values[0])
         duplicated_end_time = pd.to_datetime(df_time.tail(1).values[0])
@@ -66,7 +68,7 @@ class IdatamationFlow(ConnectToMongo):
 
     def mongo_insert_data(self, df: pd.DataFrame, collection_name: str, filename: str,
                           key_col: set, update_col: set, duplicated_data=False) -> None:
-        if duplicated_data:
+        if duplicated_data:  # 大量重複資料
             self._drop_by_time(df, collection_name)
             self.mongo_import(df, collection_name, self.fab_folder, self.data_source, filename)
         else:

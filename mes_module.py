@@ -60,7 +60,10 @@ class MESIdatamation(IdatamationFlow):
         df = self.data_type_check(df, data_type)
         global dataframe
         dataframe = df
-        self.log_csv_save_result(df, "wip_lot", filename)
+        key_col = {'FAB_ID', 'STEP', 'RPOD_ID_RAW', 'EQP_ID', 'LOT_ID', 'RECIPE_ID', 'STEP_TYPE',
+                   'MOVE_IN_TIME', 'MOVE_OUT_TIME'}
+        update_col = {'PROCESS_TIME', 'QUEUE_TIME', 'SEQUENCE', 'PROD_ID', 'LOT_TYPE'}
+        self.mongo_insert_data(df, "wip_lot", filename, key_col, update_col)
         return df.shape[0]
 
 
@@ -78,9 +81,14 @@ class SourceDataProcess:
         event_data.main_function()
 
     def main_funtion(self):
-        #self.ms_process()
+        print("ms", datetime.now())
+        self.ms_process()
+        print("spc", datetime.now())
         self.spc_process()
-        #self.event_process()
+        print("event", datetime.now())
+        self.event_process()
+        print("finish", datetime.now())
+
 
 
 process_data = MESIdatamation(fab_folder, data_source)

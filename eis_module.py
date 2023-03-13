@@ -4,7 +4,7 @@ from idatamation_module import IdatamationFlow
 fab_folder = "S3"
 data_source = "EIS"
 type_dict = {"PartNo": str, "LotNo": str, "FabId": str, "MachineNo": str, "Step": str, "Description": str}
-data_type = {"FAB_ID": str, "LOT_ID": str, "TIME": object, "EQP_ID": str, "PARAMETER_ID": str, "VALUE": int}
+data_type = {"FAB_ID": str, "LOT_ID": str, "TIME": object, "EQP_ID": str, "PARAMETER_ID": str, "VALUE": float}
 # After import data, the first step is to capitalize column names.
 column_name_format_list = ["TIMESTAMP", "PARTNO", "LOTNO", "FABID", "MACHINENO", "STEP", "DESCRIPTION", "VALUE"]
 use_column_list = ["FAB_ID", "LOT_ID", "TIME", "EQP_ID", "PARAMETER_ID", "VALUE"]

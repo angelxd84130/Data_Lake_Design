@@ -23,7 +23,9 @@ class SPCPlanOQCIdatamation(IdatamationFlow):
 
         # final check column type is correct
         df = self.data_type_check(df, data_type)
-        self.log_csv_save_result(df, "spc_plan_oqc_mapping", filename)
+        key_col = {"FAB_ID", "FILE_NAME", "PARAMETER_ID", "DEPARTMENT"}
+        update_col = {"MODULE"}
+        self.mongo_insert_data(df, "spc_plan_oqc_mapping", filename, key_col, update_col)
         return df.shape[0]
 
 

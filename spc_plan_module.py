@@ -53,7 +53,10 @@ class SPCPlanIdatamation(IdatamationFlow):
 
         # final check column type is correct
         df = self.data_type_check(df_merge, data_type)
-        self.log_csv_save_result(df, "spc_plan", filename)
+        key_col = {"FAB_ID", "DEPARTMENT", "STATION", "PROPERTY", "PARAMETER_ID", "FILE_NAME", "FILE_ID", "CTRL_ID",}
+        update_col = {"target_val", "usl_val", "lsl_val", "ucl_val", "lcl_val", "MODULE", "sample_size", "decimal_places",
+                   "units", "DEFAULT_CHART", "DEFAULT_CHART_NAME", "down_ucl_val", "down_cl_val", "down_lcl_val"}
+        self.mongo_insert_data(df, "spc_plan", filename, key_col, update_col)
         return df.shape[0]
 
 
