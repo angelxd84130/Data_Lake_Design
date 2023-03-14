@@ -29,7 +29,7 @@ use_column_list = ["FAB_ID", "PROD_ID_RAW", "EQP_ID", "LOT_ID", "RECIPE_ID", "ST
 replace_column_list = {"CURRENT_PLANT": "FAB_ID", "PART_NUMBER": "PROD_ID_RAW", "LOT_NUMBER": "LOT_ID", "MC_NO": "EQP_ID",
                        "RECIPE_NAME": "RECIPE_ID", "CHECK_IN_TIME": "MOVE_IN_TIME", "CHECK_OUT_TIME": "MOVE_OUT_TIME",
                        "PROCESSING_TIME": "PROCESS_TIME"}
-
+dataframe = pd.DataFrame()
 
 class MESIdatamation(IdatamationFlow):
     def __init__(self, fab_folder, data_source):
@@ -64,20 +64,25 @@ class MESIdatamation(IdatamationFlow):
                    'MOVE_IN_TIME', 'MOVE_OUT_TIME'}
         update_col = {'PROCESS_TIME', 'QUEUE_TIME', 'SEQUENCE', 'PROD_ID', 'LOT_TYPE'}
         self.mongo_insert_data(df, "wip_lot", filename, key_col, update_col)
+        source_data_process = SourceDataProcess(dataframe)
+        source_data_process.main_funtion()
+        #print(dataframe)
         return df.shape[0]
 
 
 class SourceDataProcess:
+    def __init__(self, df):
+        self.wip_df = df
     def ms_process(self):
-        ms_data = MSGroup(dataframe)
+        ms_data = MSGroup(self.wip_df)
         ms_data.main_function()
 
     def spc_process(self):
-        spc_data = SPCGroup(dataframe)
+        spc_data = SPCGroup(self.wip_df)
         spc_data.main_function()
 
     def event_process(self):
-        event_data = EventGroup(dataframe)
+        event_data = EventGroup(self.wip_df)
         event_data.main_function()
 
     def main_funtion(self):
@@ -93,5 +98,4 @@ class SourceDataProcess:
 
 process_data = MESIdatamation(fab_folder, data_source)
 process_data.main_function(column_name_format_list, replace_column_list, use_column_list, type_dict)
-source_data_process = SourceDataProcess()
-source_data_process.main_funtion()
+

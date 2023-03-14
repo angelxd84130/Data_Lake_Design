@@ -22,7 +22,6 @@ class MSGroup(DataMapping, ConnectToMongo):
         df_size = self.get_data()
         if df_size > 0:
             self.source_df[self.time_col] = self.source_df[self.time_col].dt.tz_localize("UTC")
-            self.lot_mapping()
             self.step_mapping()
             self.prod_mapping()
             self.transfer_compression_data()
