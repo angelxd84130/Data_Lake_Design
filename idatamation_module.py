@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pymongo import UpdateOne
 import numpy as np
 from query_data_module import ConnectToMongo
@@ -21,7 +21,7 @@ class IdatamationFlow(ConnectToMongo):
     def get_data_from_nas(self):
         filename_list = os.listdir(self.raw_data_path)
         filename_list = sorted(filename_list, reverse=False)
-        filename_list = filename_list[0:100]  # To do last 3 files of once
+        filename_list = filename_list[0:10000]  # To do last 3 files of once
         return filename_list
 
 
@@ -76,7 +76,6 @@ class IdatamationFlow(ConnectToMongo):
             self.bulk_write(self.fab_folder+filename, collection_name, update_list)
 
     def main_function(self, column_format_list, replace_column_list, use_column_list, type_dict):
-        mongo_conf = ConnectToMongo()
         filename_list = self.get_data_from_nas()
         df_count = 0
         for filename in filename_list:
@@ -131,7 +130,7 @@ class IdatamationFlow(ConnectToMongo):
                         print(error_info)
                         log_text = f"[{date_time}][Value Error]: Column type is not correct !\n" + \
                                    f"[Error]:{e}"
-                        mongo_conf.mongo_insert_log(date_time, self.fab_folder, self.data_source, filename,
+                        self.mongo_insert_log(date_time, self.fab_folder, self.data_source, filename,
                                                     status="Value Error",
                                                     message=f"{self.data_source}/{filename} is transmitted to "
                                                             f"Error Folder 'other'.\n" + f"[Error]:{e}",
@@ -150,7 +149,7 @@ class IdatamationFlow(ConnectToMongo):
                         }
                         print(error_info)
                         log_text = f"[{date_time}][Other Error]: {e}\n"
-                        mongo_conf.mongo_insert_log(date_time, self.fab_folder, self.data_source, filename,
+                        self.mongo_insert_log(date_time, self.fab_folder, self.data_source, filename,
                                                     status="Other Error",
                                                     message=f"{self.data_source}/{filename} is transmitted to "
                                                             f"Error Folder 'other'.\n" + f"[Error]:{e}",

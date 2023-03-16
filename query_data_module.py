@@ -10,9 +10,9 @@ class ConnectToMongo:
         self.mongo_port = 27018
         self.mongo_user = "admin"
         self.mongo_password = "admin"
-        self.mongo_db = "ai"
+        self.mongo_db = "prd_unimicron"
         self.client = MongoClient(host=self.mongo_host, port=self.mongo_port, username=self.mongo_user,
-                                          password=self.mongo_password, authSource="admin")
+                                          password=self.mongo_password, authSource="admin", connect=False)
         self.db = self.client[self.mongo_db]
 
     def mongo_insert_log(self, date_time, fab_folder, data_source, filename, status, message=None, datarows=None,

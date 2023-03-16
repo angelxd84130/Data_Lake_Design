@@ -7,7 +7,7 @@ class DataMapping:
     def get_data(self) -> int:
         print('time:', self.move_in_time, self.move_out_time)
         colle_wip = self.db[self.tbname]
-        match = {"$match": {"FAB_ID": {"$ne": None},
+        match = {"$match": {"FAB_ID": {"$ne": None}, "LOT_ID": {"$ne": None},
                             self.time_col: {"$gte": self.move_in_time, "$lte": self.move_out_time}}}
         project = {"$project": {"_id": 0}}
         pipeline = [match, project]

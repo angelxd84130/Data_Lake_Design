@@ -36,10 +36,9 @@ class SPCIdatamation(IdatamationFlow):
         df = self.get_prodID_and_lotTYPE(df, 7, "standard")  # spc data has special rules
         df = self.data_type_check(df, data_type)
         self.mongo_insert_data(df, "spc_original_lot", filename, set(), set(), duplicated_data=True)
-        self.dataframe = df
+        compress_data = SPCCompression(df)
+        compress_data.main_function()
         return df.shape[0]
 
 process_data = SPCIdatamation(fab_folder, data_source)
 process_data.main_function(column_name_format_list, replace_column_list, use_column_list, type_dict)
-compress_data = SPCCompression(process_data.dataframe)
-compress_data.main_function()
