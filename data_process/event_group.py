@@ -1,17 +1,21 @@
 from data_process.data_mapping import DataMapping
-from query_data_module import ConnectToMongo
 from pymongo import UpdateOne
 import pandas as pd
 
 
-class EventGroup(DataMapping, ConnectToMongo):
-    def __init__(self, wip_df: pd.DataFrame):
+class EventGroup(DataMapping):
+    def __init__(self, wip_df: pd.DataFrame, db, mongo_remove, mongo_import, bulk_write):
         super().__init__()
         self.wip_df = wip_df.sort_values(by=['MOVE_IN_TIME'], ascending=True)
         self.move_in_time = self.wip_df.get('MOVE_IN_TIME')[0]
         self.move_out_time = self.wip_df.get('MOVE_OUT_TIME')[0]
         self.time_col = 'START_TIME'
         self.tbname = 'events_original'
+        self.db = db
+        self.mongo_remove = mongo_remove
+        self.mongo_import = mongo_import
+        self.bulk_write = bulk_write
+
 
     def main_function(self) -> None:
         df_size = self.get_data()

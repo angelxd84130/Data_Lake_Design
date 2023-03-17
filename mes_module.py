@@ -64,25 +64,28 @@ class MESIdatamation(IdatamationFlow):
                    'MOVE_IN_TIME', 'MOVE_OUT_TIME'}
         update_col = {'PROCESS_TIME', 'QUEUE_TIME', 'SEQUENCE', 'PROD_ID', 'LOT_TYPE'}
         self.mongo_insert_data(df, "wip_lot", filename, key_col, update_col)
-        source_data_process = SourceDataProcess(dataframe)
+        source_data_process = SourceDataProcess(dataframe, self.db, self.mongo_remove, self.mongo_import, self.bulk_write)
         source_data_process.main_funtion()
-        #print(dataframe)
         return df.shape[0]
 
 
 class SourceDataProcess:
-    def __init__(self, df):
+    def __init__(self, df, db, mongo_remove, mongo_import, bulk_write):
         self.wip_df = df
+        self.db = db
+        self.mongo_remove = mongo_remove
+        self.mongo_import = mongo_import
+        self.bulk_write = bulk_write
     def ms_process(self):
-        ms_data = MSGroup(self.wip_df)
+        ms_data = MSGroup(self.wip_df, self.db, self.mongo_remove, self.mongo_import, self.bulk_write)
         ms_data.main_function()
 
     def spc_process(self):
-        spc_data = SPCGroup(self.wip_df)
+        spc_data = SPCGroup(self.wip_df, self.db, self.mongo_remove, self.mongo_import, self.bulk_write)
         spc_data.main_function()
 
     def event_process(self):
-        event_data = EventGroup(self.wip_df)
+        event_data = EventGroup(self.wip_df, self.db, self.mongo_remove, self.mongo_import, self.bulk_write)
         event_data.main_function()
 
     def main_funtion(self):

@@ -24,7 +24,7 @@ class ConnectToMongo:
                     "dbrows": insert_db_rows}
         self.db[collection_name].insert_one(log_dict)
 
-    def mongo_import(self, df: pd.DataFrame, collection_name: str, fab_folder: str, data_source: str, filename: str):
+    def mongo_import(self, df: pd.DataFrame, collection_name: str, fab_folder: str, data_source: str, filename: str) -> None:
         df_json = df.to_dict("records")
         log_text = None
         date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -41,9 +41,9 @@ class ConnectToMongo:
             log_text = f"[{date_time}] {data_source}/{filename} " + \
                        "Insert to MongoDB is failed ! The following is except error: " + f"{e}\n"
         finally:
-            return log_text
+            logging.info(log_text)
 
-    def mongo_remove(self, collection_name, query):
+    def mongo_remove(self, collection_name, query) -> None:
         log_text = None
         date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         try:
@@ -55,7 +55,7 @@ class ConnectToMongo:
             log_text = f"[{date_time}] {collection_name} " + \
                        "Delete to MongoDB is failed ! The following is except error: " + f"{e}\n"
         finally:
-            return log_text
+            logging.info(log_text)
 
     def bulk_write(self, data_source: str, target_collection: str, updates: list) -> None:
         try:

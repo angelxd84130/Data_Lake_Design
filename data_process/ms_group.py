@@ -1,5 +1,4 @@
 from data_process.data_mapping import DataMapping
-from query_data_module import ConnectToMongo
 from pymongo import UpdateOne
 import pandas as pd
 import logging
@@ -8,8 +7,8 @@ import copy
 import sys
 
 
-class MSGroup(DataMapping, ConnectToMongo):
-    def __init__(self, wip_df: pd.DataFrame):
+class MSGroup(DataMapping):
+    def __init__(self, wip_df: pd.DataFrame, db, mongo_remove, mongo_import, bulk_write):
         super().__init__()
         self.wip_df = wip_df.sort_values(by=['MOVE_IN_TIME'], ascending=True)
         self.move_in_time = self.wip_df.get('MOVE_IN_TIME')[0]
@@ -17,6 +16,10 @@ class MSGroup(DataMapping, ConnectToMongo):
         self.time_col = 'TIME'
         self.tbname = 'ms_original_lot'
         self.update_list = []
+        self.db = db
+        self.mongo_remove = mongo_remove
+        self.mongo_import = mongo_import
+        self.bulk_write = bulk_write
 
     def main_function(self):
         df_size = self.get_data()

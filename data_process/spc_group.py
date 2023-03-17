@@ -1,12 +1,11 @@
 from data_process.data_mapping import DataMapping
-from query_data_module import ConnectToMongo
 from pymongo import UpdateOne
 import pandas as pd
 import logging
 
 
-class SPCGroup(DataMapping, ConnectToMongo):
-    def __init__(self, wip_df: pd.DataFrame):
+class SPCGroup(DataMapping):
+    def __init__(self, wip_df: pd.DataFrame, db, mongo_remove, mongo_import, bulk_write):
         super().__init__()
         self.wip_df = wip_df.sort_values(by=['MOVE_IN_TIME'], ascending=True)
         self.move_in_time = self.wip_df.get('MOVE_IN_TIME')[0]
@@ -14,7 +13,10 @@ class SPCGroup(DataMapping, ConnectToMongo):
         self.time_col = 'TIME'
         self.tbname = 'spc_group_lot'
         self.update_list = []
-
+        self.db = db
+        self.mongo_remove = mongo_remove
+        self.mongo_import = mongo_import
+        self.bulk_write = bulk_write
 
     def main_function(self) -> None:
         df_size = self.get_data()
@@ -65,14 +67,16 @@ class SPCGroup(DataMapping, ConnectToMongo):
             updates.append(UpdateOne(query, set, upsert=True))
         self.bulk_write(self.tbname, 'spc_lot', updates)
 
-class SPCCompression(ConnectToMongo):
+class SPCCompression:
 
-    def __init__(self, df):
+    def __init__(self, df, db, mongo_remove, mongo_import, bulk_write):
         self.source_df = df
         self.tbname = 'spc_original_lot'
         self.update_list = []
-        super().__init__()
-        pass
+        self.db = db
+        self.mongo_remove = mongo_remove
+        self.mongo_import = mongo_import
+        self.bulk_write = bulk_write
 
     def get_sample_size(self):
         colle_spc_plan = self.db["spc_plan"]
