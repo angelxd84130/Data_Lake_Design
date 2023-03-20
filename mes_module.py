@@ -60,8 +60,8 @@ class MESIdatamation(IdatamationFlow):
         df = self.data_type_check(df, data_type)
         global dataframe
         dataframe = df
-        key_col = {'FAB_ID', 'STEP', 'RPOD_ID_RAW', 'EQP_ID', 'LOT_ID', 'RECIPE_ID', 'STEP_TYPE',
-                   'MOVE_IN_TIME', 'MOVE_OUT_TIME'}
+        key_col = {'FAB_ID', 'STEP', 'PROD_ID_RAW', 'EQP_ID', 'LOT_ID', 'RECIPE_ID', 'STEP_TYPE',
+                   'MOVE_IN_TIME', 'MOVE_OUT_TIME', 'LAYER', 'STATION'}
         update_col = {'PROCESS_TIME', 'QUEUE_TIME', 'SEQUENCE', 'PROD_ID', 'LOT_TYPE'}
         self.mongo_insert_data(df, "wip_lot", filename, key_col, update_col)
         source_data_process = SourceDataProcess(dataframe, self.db, self.mongo_remove, self.mongo_import, self.bulk_write)
@@ -100,5 +100,5 @@ class SourceDataProcess:
 
 
 process_data = MESIdatamation(fab_folder, data_source)
-process_data.main_function(column_name_format_list, replace_column_list, use_column_list, type_dict)
+#process_data.main_function(column_name_format_list, replace_column_list, use_column_list, type_dict)
 

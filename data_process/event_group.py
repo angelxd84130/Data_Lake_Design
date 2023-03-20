@@ -36,7 +36,9 @@ class EventGroup(DataMapping):
                      'LOT_ID': row.get('LOT_ID'),
                      'STEP': row.get('STEP'),
                      'PROD_ID': row.get('PROD_ID'),
-                     'LOT_TYPE': row.get('LOT_TYPE')}
+                     'LOT_TYPE': row.get('LOT_TYPE'),
+                     'LAYER': row.get('LAYER'),
+                     'STATION': row.get('STATION')}
             set = {"$set": {"TYPE": row.get('TYPE'), "EVENT_MSG": row.get('EVENT_MSG')}}
             updates.append(UpdateOne(query, set, upsert=True))
         self.bulk_write(self.tbname, 'events', updates)

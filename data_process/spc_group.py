@@ -60,6 +60,7 @@ class SPCGroup(DataMapping):
                      'FILE_NAME': row.get('FILE_NAME'),
                      'PARAMETER_ID': row.get('PARAMETER_ID'),
                      'PROPERTY': row.get('PROPERTY'),
+                     'LAYER': row.get('LAYER'),
                      'STATION': row.get('STATION'),
                      'STATION_RAW': row.get('STATION_RAW'),
                      }

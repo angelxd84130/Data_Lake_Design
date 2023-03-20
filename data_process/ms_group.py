@@ -40,7 +40,8 @@ class MSGroup(DataMapping):
 
     def collect_signal(self, group):
         DOC_MAX_SIZE = 15728640  # 15MB
-        non_signal_columns = [('FAB_ID', ''), ('EQP_ID', ''), ('STEP', ''), ('LOT_ID', ''), ('TIME', ''), ('PROD_ID', ''), ('LOT_TYPE', '')]
+        non_signal_columns = [('FAB_ID', ''), ('EQP_ID', ''), ('STEP', ''), ('LOT_ID', ''), ('TIME', ''),
+                              ('PROD_ID', ''), ('LOT_TYPE', ''), ('LAYER', ''), ('STATION', '')]
         group = group.sort_values(by="TIME").reset_index(drop=True)
         value_d = {}
 
@@ -56,6 +57,8 @@ class MSGroup(DataMapping):
             "LOT_ID": group["LOT_ID"][0],
             "PROD_ID": group["PROD_ID"][0],
             "LOT_TYPE": group["LOT_TYPE"][0],
+            "LAYER": group["LAYER"][0],
+            "STATION": group["STATION"][0],
             "TIME": group["TIME"].tolist(),
             "VALUE": value_d,
         }
@@ -85,7 +88,7 @@ class MSGroup(DataMapping):
             group_data = ms_original_df.groupby(["FAB_ID", "STEP", "EQP_ID", "LOT_ID", "PROD_ID", "LOT_TYPE"])
             for group_idx in group_data.groups:
                 temp = pd.pivot_table(group_data.get_group(group_idx),
-                                      index=["FAB_ID", "EQP_ID", "STEP", "LOT_ID", "PROD_ID", "LOT_TYPE", "TIME"],
+                                      index=["FAB_ID", "EQP_ID", "STEP", "LOT_ID", "PROD_ID", "LOT_TYPE", "TIME", 'LAYER', 'STATION'],
                                       columns=["PARAMETER_ID"],
                                       values=["VALUE"]).reset_index()
 
@@ -100,6 +103,8 @@ class MSGroup(DataMapping):
                  'LOT_ID': d.get('LOT_ID'),
                  'STEP': d.get('STEP'),
                  'PROD_ID': d.get('PROD_ID'),
-                 'LOT_TYPE': d.get('LOT_TYPE')}
+                 'LOT_TYPE': d.get('LOT_TYPE'),
+                 'LAYER': d.get('LAYER'),
+                 'STATION': d.get('STATION')}
         set = {"$set": {"TIME": d.get('TIME'), "VALUE": d.get('VALUE')}}
         self.update_list.append(UpdateOne(query, set, upsert=True))

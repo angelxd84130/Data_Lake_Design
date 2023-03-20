@@ -3,17 +3,15 @@ from datetime import datetime, timedelta
 from query_data_module import ConnectToMongo
 import pandas as pd
 
-class DailyCheck:
+class DailyCheck():
     def __init__(self):
-        mongo_con = ConnectToMongo()
-        self.db = mongo_con.db
+        super().__init__()
         self.tbname = 'wip_lot'
         self.fab = 'S3'
-        self.start_time = datetime.now() - timedelta(days=1)
+        self.start_time = datetime.now() - timedelta(days=5)
         self.end_time = datetime.now()
         self.wip_df = self.get_wip()
-        source_data_process = SourceDataProcess(self.wip_df)
-        source_data_process.main_funtion()
+        self.time_col = ["MOVE_IN_TIME", "MOVE_OUT_TIME"]
 
     def get_wip(self):
 
@@ -25,6 +23,14 @@ class DailyCheck:
         wip_df = pd.DataFrame(list(colle_wip.aggregate(pipeline)))
         return wip_df
 
+    def mapping_check(self):
+        if not self.wip_df.empty:
+            self.wip_df["MOVE_IN_TIME"] = self.wip_df["MOVE_IN_TIME"].dt.tz_localize("UTC")
+            self.wip_df["MOVE_OUT_TIME"] = self.wip_df["MOVE_OUT_TIME"].dt.tz_localize("UTC")
+            source_data_process = SourceDataProcess(self.wip_df, self.db, self.mongo_remove, self.mongo_import,
+                                                    self.bulk_write)
+            source_data_process.main_funtion()
+
 
 daily_check = DailyCheck()
-
+daily_check.mapping_check()
