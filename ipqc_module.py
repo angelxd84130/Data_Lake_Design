@@ -31,8 +31,8 @@ class IPQCIdatamation(IdatamationFlow):
         df["TIME"] = pd.to_datetime(df["TIME"])
         df = self.get_prodID_and_lotTYPE(df)
         df = self.data_type_check(df, data_type)
-        key_col = {'FAB_ID', 'STEP', 'PROD_ID', 'LOT_ID', 'PARAMETER_ID', 'TIME'}
-        update_col = {'VALUE'}
+        key_col = {'FAB_ID', 'STEP',  'PROD_ID', 'LOT_ID', 'PARAMETER_ID', 'TIME'}
+        update_col = {'VALUE', "PROD_ID_RAW", "LOT_TYPE", "LAYER", "STATION"}
         self.mongo_insert_data(df, "ipqc_lot", filename, key_col, update_col)
         return df.shape[0]
 

@@ -89,8 +89,8 @@ class SourceDataProcess:
         event_data.main_function()
 
     def main_funtion(self):
-        print("ms", datetime.now())
-        self.ms_process()
+        #print("ms", datetime.now())
+        #self.ms_process()
         print("spc", datetime.now())
         self.spc_process()
         print("event", datetime.now())
@@ -100,5 +100,5 @@ class SourceDataProcess:
 
 
 process_data = MESIdatamation(fab_folder, data_source)
-#process_data.main_function(column_name_format_list, replace_column_list, use_column_list, type_dict)
+process_data.main_function(column_name_format_list, replace_column_list, use_column_list, type_dict)
 
