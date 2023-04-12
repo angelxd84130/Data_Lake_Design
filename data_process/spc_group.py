@@ -7,9 +7,10 @@ import logging
 class SPCGroup(DataMapping):
     def __init__(self, wip_df: pd.DataFrame, db, mongo_remove, mongo_import, bulk_write):
         super().__init__()
-        self.wip_df = wip_df.sort_values(by=['MOVE_IN_TIME'], ascending=True)
+        self.wip_df = wip_df.sort_values(by=['MOVE_IN_TIME'], ascending=True).reset_index(drop=True)
         self.move_in_time = self.wip_df.get('MOVE_IN_TIME')[0]
-        self.move_out_time = self.wip_df.get('MOVE_OUT_TIME')[0]
+        self.wip_df = wip_df.sort_values(by=['MOVE_OUT_TIME'], ascending=True).reset_index(drop=True)
+        self.move_out_time = self.wip_df.get('MOVE_OUT_TIME')[len(self.wip_df)-1]
         self.time_col = 'TIME'
         self.tbname = 'spc_group_lot'
         self.update_list = []
