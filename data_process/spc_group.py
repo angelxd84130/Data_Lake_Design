@@ -22,7 +22,6 @@ class SPCGroup(DataMapping):
     def main_function(self) -> None:
         df_size = self.get_data()
         if df_size > 0:
-            self.source_df.rename({'STATION': 'STATION_RAW'}, axis='columns', inplace=True)
             self.source_df[self.time_col] = self.source_df[self.time_col].dt.tz_localize("UTC")
             self.step_eqp_mapping()
             self.source_df = self.source_df.drop(['PROD_ID', 'LOT_TYPE'], axis=1)

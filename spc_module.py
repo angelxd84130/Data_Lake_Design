@@ -18,12 +18,13 @@ class SPCIdatamation(IdatamationFlow):
         self.data_type = {"FAB_ID": str, "PROD_ID_RAW": str, "LOT_ID": str, "TIME": object, "STEP": str,
                      "PARAMETER_ID": str, "VALUE": float, "EQP_ID": str, "PROPERTY": str, "STATION": str,
                      "DEPARTMENT": str, "FILE_NAME": str, "FILE_ID": int, "CTRL_ID": int, "PROD_ID": str,
-                     "LOT_TYPE": str, "LAYER": str}
+                     "LOT_TYPE": str, "LAYER": str, "STEP_RAW": str}
 
     def data_transformat(self, df, filename):
         df["TIME"] = pd.to_datetime(df["TIME"])
         df["TIME"] = df["TIME"].dt.tz_localize("Etc/GMT-8").dt.tz_convert("UTC")
         df["FAB"] = self.fab_folder
+        df["STEP_RAW"] = df["STEP"]
         df["STEP"] = df["LAYER"].astype(str) + "-" + df["STEP"].astype(str)
         df = df.rename(columns=self.replace_column_list)
         df = self.get_prodID_and_lotTYPE(df, 7, "standard")  # spc data has special rules

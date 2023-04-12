@@ -32,10 +32,10 @@ class DataMapping:
         pass
 
     def prod_mapping(self) -> None:
-        # lot --> prod + lot_type + layer + station
+        # lot --> prod + lot_type
         mask = (self.source_df['LOT_ID'].notnull())
         target_df = self.source_df[mask]
-        wip_df = self.wip_df[['FAB_ID', 'LOT_ID', 'PROD_ID', 'LOT_TYPE', 'LAYER', 'STATION']].drop_duplicates()
+        wip_df = self.wip_df[['FAB_ID', 'LOT_ID', 'PROD_ID', 'LOT_TYPE']].drop_duplicates()
         target_df = pd.merge(target_df, wip_df, on=['FAB_ID', 'LOT_ID'], how='left')
         self.source_df = target_df
         log_text = f"finished prod mapping"
