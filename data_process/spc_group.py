@@ -91,8 +91,18 @@ class SPCCompression:
         self.source_df = pd.merge(self.source_df, spc_plan_df, on=['CTRL_ID'], how='left')
         self.transfer_compression_data()
 
+    def check_spc_plan_update(self) -> None:
+        mask = (self.source_df['sample_size'].notnull())
+        source_df_without_sample_size = self.source_df[~mask]
+        self.source_df = self.source_df[mask]
+        logging.info('error!!! cannot find these ctrl_id in spc_plan:',
+              source_df_without_sample_size['CTRL_ID'].unique().tolist(),
+              'please update spc_plan')
+
     def transfer_compression_data(self) -> None:
-        self.source_df = self.source_df.dropna(subset=['LOT_ID', 'STEP', 'EQP_ID'])
+        self.source_df = self.source_df.dropna(subset=['LOT_ID', 'STEP', 'LAYER'])
+        self.check_spc_plan_update()
+
         if len(self.source_df) < 1:
             log_text = f"no spc_original_lot data to transfer"
             logging.info(log_text)
@@ -100,8 +110,14 @@ class SPCCompression:
 
         checkList = self.source_df.groupby(['FAB_ID', 'STATION', 'DEPARTMENT', 'FILE_ID', 'CTRL_ID', 'sample_size'])
         for key, item in checkList:
-            if item['sample_size'].head(1).values[0] == len(item):
-                self.group_document(item)
+            sample_size = int(item['sample_size'].head(1).values[0])
+            while sample_size <= len(item):
+                df_chunck = item.iloc[:sample_size, :]
+                item = item.iloc[sample_size:, :]
+                self.group_document(df_chunck)
+
+            if len(item) < sample_size and len(item) > 0:
+                logging.info('cannot find pairs with ctrl_id:' + str(int(item['sample_size'].head(1).values[0])))
         self.bulk_write(self.tbname, 'spc_group_lot', self.update_list)
         log_text = f"[UPDATE STEP]: the total of rows is {len(checkList)}"
         logging.info(log_text)
@@ -112,6 +128,7 @@ class SPCCompression:
     def group_document(self, row: pd.DataFrame) -> None:
         query = {"FAB_ID": self._get_value(row, 'FAB_ID'),
                  "PROD_ID": self._get_value(row, 'PROD_ID'),
+                 "PROD_ID_RAW": self._get_value(row, 'PROD_ID_RAW'),
                  "STEP": self._get_value(row, 'STEP'),
                  "EQP_ID": self._get_value(row, 'EQP_ID'),
                  "LOT_ID": self._get_value(row, 'LOT_ID'),
