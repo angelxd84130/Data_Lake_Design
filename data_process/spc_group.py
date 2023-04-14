@@ -54,6 +54,7 @@ class SPCGroup(DataMapping):
                      'TIME': row.get('TIME'),
                      'LOT_ID': row.get('LOT_ID'),
                      'STEP': row.get('STEP'),
+                     'STEP_RAW': row.get('STEP_RAW'),
                      'PROD_ID': row.get('PROD_ID'),
                      'LOT_TYPE': row.get('LOT_TYPE'),
                      'FILE_ID': row.get('FILE_ID'),
@@ -62,7 +63,6 @@ class SPCGroup(DataMapping):
                      'PROPERTY': row.get('PROPERTY'),
                      'LAYER': row.get('LAYER'),
                      'STATION': row.get('STATION'),
-                     'STATION_RAW': row.get('STATION_RAW'),
                      }
             set = {"$set": {"VALUE": row.get('VALUE'), "STD": row.get('STD'), "VALUES": row.get('VALUES')}}
             updates.append(UpdateOne(query, set, upsert=True))
@@ -140,6 +140,8 @@ class SPCCompression:
                  "FILE_ID": int(self._get_value(row, 'FILE_ID')),  # monog doesn't accept numpy types
                  "CTRL_ID": int(self._get_value(row, 'CTRL_ID')),
                  "TIME": pd.to_datetime(self._get_value(row, 'TIME')),
+                 "LAYER": self._get_value(row, 'LAYER'),
+                 "STEP_RAW": self._get_value(row, 'STEP_RAW'),
                  "LOT_TYPE": "standard"}
         set = {"$set": {"VALUE": round(float(row['VALUE'].mean()), 6),
                         "STD": round(float(row['VALUE'].std()), 6),
