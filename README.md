@@ -1,4 +1,4 @@
-# Data_Lake_Bulding
+# Data_Lake_Design
 ![data_flow.drawio](uploads/239858793e88f2268b4628c8a3cb8b74/data_flow.drawio.png)
 <!-- PROJECT LOGO -->
 <br />
